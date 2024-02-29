@@ -1,0 +1,251 @@
+require 'ruby2d'
+
+set background: 'blue'
+
+set width: 800, height: 600, title: "Pong Game"
+
+class Paddle
+  attr_accessor :y, :speed_multiplier
+
+  def initialize(x, y)
+    @x = x
+    @y = y
+    @width = 20
+    @height = 100
+    @color = 'white'
+    @speed_multiplier = 1.0
+  end
+
+  def draw
+    Rectangle.new(x: @x, y: @y, width: @width, height: @height, color: @color)
+  end
+
+  def update_speed
+    @speed_multiplier = 1.0
+  end
+end
+
+class Ball
+  attr_accessor :x, :y, :dx, :dy, :speed_multiplier
+
+  def initialize(x, y, dx, dy)
+    @x = x
+    @y = y
+    @radius = 10
+    @dx = dx
+    @dy = dy
+    @color = 'white'
+    @speed_multiplier = 1.0
+  end
+
+  def draw
+    Circle.new(x: @x, y: @y, radius: @radius, sectors: 32, color: @color)
+  end
+
+  def update_speed
+    @speed_multiplier = 1.0
+  end
+end
+
+class Divider
+  def initialize
+    @x = Window.width / 2
+    @height = Window.height
+    @width = 10
+    @color = 'white'
+  end
+
+  def draw
+    Rectangle.new(x: @x, y: 0, width: @width, height: @height, color: @color)
+  end
+end
+
+class Scoreboard
+  attr_accessor :score
+
+  def initialize(x, y)
+    @x = x
+    @y = y
+    @score = 0
+    @font = nil
+    @size = 25
+    @color = 'white'
+    @bold = true
+  end
+
+  def draw
+    Text.new("#{@score}", x: @x, y: @y, size: @size, color: @color, style: (@bold ? 'bold' : nil))
+  end
+
+  def increase_score
+    @score += 1
+  end
+end
+
+class PauseSymbol
+  def initialize
+    @size = 100
+    @x = Window.width / 2 - @size * 1.5
+    @y = Window.height / 2 - @size / 2
+    @color = 'white'
+    @selected_square = nil
+  end
+
+  def draw
+    Square.new(x: @x, y: @y, size: @size, color: @selected_square == 1 ? 'red' : @color)
+    Square.new(x: @x + @size * 1.1, y: @y, size: @size, color: @selected_square == 2 ? 'red' : @color)
+    Square.new(x: @x + @size * 2.2, y: @y, size: @size, color: @selected_square == 3 ? 'red' : @color)
+  end
+
+  def select_square(square_number, player)
+    if player == 1
+      @selected_square = square_number
+    elsif player == 2
+      @selected_square = square_number + 3
+    end
+  end
+
+  def reset_selection
+    @selected_square = nil
+  end
+
+  def selected_square
+    @selected_square
+  end
+end
+
+player1 = Paddle.new(50, 250)
+player2 = Paddle.new(Window.width - 70, 250)
+ball = Ball.new(Window.width / 2, Window.height / 2, 5, rand(-5..5).to_i)
+divider = Divider.new
+scoreboard1 = Scoreboard.new(150, 50)
+scoreboard2 = Scoreboard.new(Window.width - 200, 50)
+pause_symbol = PauseSymbol.new
+
+consecutive_scores_player1 = 0
+consecutive_scores_player2 = 0
+
+stop_time = 0
+stopped_time = false
+
+on :key_held do |event|
+  unless stopped_time
+    case event.key
+    when 'w'
+      player1.y -= 5 * player1.speed_multiplier if player1.y > 0
+    when 's'
+      player1.y += 5 * player1.speed_multiplier if player1.y < (Window.height - player1.instance_variable_get(:@height))
+    when 'up'
+      player2.y -= 5 * player2.speed_multiplier if player2.y > 0
+    when 'down'
+      player2.y += 5 * player2.speed_multiplier if player2.y < (Window.height - player2.instance_variable_get(:@height))
+    end
+  end
+end
+
+on :key_down do |event|
+  if stopped_time
+    case event.key
+    when '1', '2', '3'
+      pause_symbol.select_square(event.key.to_i, 1)
+    when 'left', 'up', 'right'
+      pause_symbol.select_square(event.key == 'left' ? 1 : (event.key == 'up' ? 2 : 3), 2)
+    end
+  end
+end
+
+update do
+  if stopped_time
+    if Time.now.to_i - stop_time >= 5
+      stopped_time = false
+      selected_square = pause_symbol.selected_square
+
+      case selected_square
+      when 1
+        player1.speed_multiplier = 0.5
+      when 2
+        player2.speed_multiplier = 1.5
+      when 3
+        ball.speed_multiplier = 1.5
+      when 4
+        player2.speed_multiplier = 0.5
+      when 5
+        player1.speed_multiplier = 1.5
+      when 6
+        ball.speed_multiplier = 1.5
+      end
+
+      pause_symbol.reset_selection
+    end
+  else
+    ball.x += ball.dx * ball.speed_multiplier
+    ball.y += ball.dy * ball.speed_multiplier
+
+    if ball.x - ball.instance_variable_get(:@radius) < 0
+      scoreboard2.increase_score
+      consecutive_scores_player1 = 0
+      consecutive_scores_player2 += 1
+      if consecutive_scores_player2 == 3
+        stop_time = Time.now.to_i
+        stopped_time = true
+        consecutive_scores_player2 = 0
+        player1.update_speed
+        player2.update_speed
+        ball.update_speed
+      end
+      ball.x = Window.width / 2
+      ball.y = Window.height / 2
+      ball.dy = rand(-5..5).to_i
+    end
+
+    if ball.x + ball.instance_variable_get(:@radius) > Window.width
+      scoreboard1.increase_score
+      consecutive_scores_player1 += 1
+      consecutive_scores_player2 = 0
+      if consecutive_scores_player1 == 3
+        stop_time = Time.now.to_i
+        stopped_time = true
+        consecutive_scores_player1 = 0
+        player1.update_speed
+        player2.update_speed
+        ball.update_speed
+      end
+      ball.x = Window.width / 2
+      ball.y = Window.height / 2
+      ball.dy = rand(-5..5).to_i
+    end
+
+    if ball.x - ball.instance_variable_get(:@radius) < player1.instance_variable_get(:@x) + player1.instance_variable_get(:@width) &&
+       ball.x + ball.instance_variable_get(:@radius) > player1.instance_variable_get(:@x) &&
+       ball.y - ball.instance_variable_get(:@radius) < player1.instance_variable_get(:@y) + player1.instance_variable_get(:@height) &&
+       ball.y + ball.instance_variable_get(:@radius) > player1.instance_variable_get(:@y)
+      ball.dx = -ball.dx
+    end
+
+    if ball.x - ball.instance_variable_get(:@radius) < player2.instance_variable_get(:@x) + player2.instance_variable_get(:@width) &&
+       ball.x + ball.instance_variable_get(:@radius) > player2.instance_variable_get(:@x) &&
+       ball.y - ball.instance_variable_get(:@radius) < player2.instance_variable_get(:@y) + player2.instance_variable_get(:@height) &&
+       ball.y + ball.instance_variable_get(:@radius) > player2.instance_variable_get(:@y)
+      ball.dx = -ball.dx
+    end
+
+    ball.dy = -ball.dy if ball.y - ball.instance_variable_get(:@radius) < 0 || ball.y + ball.instance_variable_get(:@radius) > Window.height
+  end
+end
+
+render do
+  clear
+
+  player1.draw
+  player2.draw
+  ball.draw
+  divider.draw
+  scoreboard1.draw
+  scoreboard2.draw
+
+  if stopped_time
+    pause_symbol.draw
+  end
+end
+
+show
