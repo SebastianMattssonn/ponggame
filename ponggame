@@ -1,13 +1,14 @@
-require 'ruby2d'
+require 'ruby2d' #Laddar in Ruby2D bibloteket
 
-set background: 'blue'
+set background: 'blue' #Ställer in bakgrundsfärgen till blå
 
-set width: 800, height: 600, title: "Pong Game"
+set width: 800, height: 600, title: "Pong Game" #Ställer in bredd, höjd och titel på spel-fönstret
 
+# Skapar klassen Paddle
 class Paddle
-  attr_accessor :y, :speed_multiplier
+  attr_accessor :y, :speed_multiplier #Definierar attributen y och speed_multiplier for paddlarna
 
-  def initialize(x, y)
+  def initialize(x, y) #Konstruktör för att skapa en ny paddel med en give x och y positiion
     @x = x
     @y = y
     @width = 20
@@ -16,19 +17,20 @@ class Paddle
     @speed_multiplier = 1.0
   end
 
-  def draw
+  def draw #Ritar ut paddeln på skärmen
     Rectangle.new(x: @x, y: @y, width: @width, height: @height, color: @color)
   end
 
-  def update_speed
+  def update_speed #Uppdaterar hastighetsmultiplikatorn för paddlarna
     @speed_multiplier = 1.0
   end
 end
 
+#Skapar klassen Ball
 class Ball
   attr_accessor :x, :y, :dx, :dy, :speed_multiplier
 
-  def initialize(x, y, dx, dy)
+  def initialize(x, y, dx, dy) #Konstruktör för att skapa en ny boll med en given x och y position samt hastighet
     @x = x
     @y = y
     @radius = 10
@@ -38,32 +40,34 @@ class Ball
     @speed_multiplier = 1.0
   end
 
-  def draw
+  def draw #Ritar ut bollen på skärmen
     Circle.new(x: @x, y: @y, radius: @radius, sectors: 32, color: @color)
   end
 
-  def update_speed
+  def update_speed #Uppdaterar hastighetsmultiplikatorn för Bollen
     @speed_multiplier = 1.0
   end
 end
 
+#Skapar klassen Divider
 class Divider
-  def initialize
+  def initialize #Skapar en mittenlinje
     @x = Window.width / 2
     @height = Window.height
     @width = 10
     @color = 'white'
   end
 
-  def draw
+  def draw #Ritar ut mittenlinjen på skärmen
     Rectangle.new(x: @x, y: 0, width: @width, height: @height, color: @color)
   end
 end
 
+#Skapar klassen Scoreboard
 class Scoreboard
-  attr_accessor :score
+  attr_accessor :score #Definierar attributet score för poängräknaren
 
-  def initialize(x, y)
+  def initialize(x, y) #Konstruktör för att skapa en ny poängräknare med en given x och y position
     @x = x
     @y = y
     @score = 0
@@ -73,17 +77,18 @@ class Scoreboard
     @bold = true
   end
 
-  def draw
+  def draw #Ritar ut poängräknaren på skärmen
     Text.new("#{@score}", x: @x, y: @y, size: @size, color: @color, style: (@bold ? 'bold' : nil))
   end
 
-  def increase_score
+  def increase_score #Ökar poängen med ett
     @score += 1
   end
 end
 
+#Skapar klassen PauseSymbol
 class PauseSymbol
-  def initialize
+  def initialize #Konstruktör för att slaåa en ny pausmeny
     @size = 100
     @x = Window.width / 2 - @size * 1.5
     @y = Window.height / 2 - @size / 2
@@ -91,13 +96,13 @@ class PauseSymbol
     @selected_square = nil
   end
 
-  def draw
+  def draw #Ritar ut pausmenyn på skärmen
     Square.new(x: @x, y: @y, size: @size, color: @selected_square == 1 ? 'red' : @color)
     Square.new(x: @x + @size * 1.1, y: @y, size: @size, color: @selected_square == 2 ? 'red' : @color)
     Square.new(x: @x + @size * 2.2, y: @y, size: @size, color: @selected_square == 3 ? 'red' : @color)
   end
 
-  def select_square(square_number, player)
+  def select_square(square_number, player) #Väljer en ruta i pausmenyn
     if player == 1
       @selected_square = square_number
     elsif player == 2
@@ -105,15 +110,16 @@ class PauseSymbol
     end
   end
 
-  def reset_selection
+  def reset_selection #Återställer val av förmåga i pausmenyn
     @selected_square = nil
   end
 
-  def selected_square
+  def selected_square #Hämtar en vald förmåga i pausmenyn
     @selected_square
   end
 end
 
+#Skapar spelobjekt
 player1 = Paddle.new(50, 250)
 player2 = Paddle.new(Window.width - 70, 250)
 ball = Ball.new(Window.width / 2, Window.height / 2, 5, rand(-5..5).to_i)
@@ -128,6 +134,7 @@ consecutive_scores_player2 = 0
 stop_time = 0
 stopped_time = false
 
+#Lyssnar på tangenttryckningar
 on :key_held do |event|
   unless stopped_time
     case event.key
@@ -143,6 +150,7 @@ on :key_held do |event|
   end
 end
 
+#Lyssnar på tangenttryckningar
 on :key_down do |event|
   if stopped_time
     case event.key
@@ -154,6 +162,7 @@ on :key_down do |event|
   end
 end
 
+#Uppdateringsloop för spellogiken
 update do
   if stopped_time
     if Time.now.to_i - stop_time >= 5
@@ -181,6 +190,7 @@ update do
     ball.x += ball.dx * ball.speed_multiplier
     ball.y += ball.dy * ball.speed_multiplier
 
+    #Kollision upptäckt och hantering för bollen som träffar väggarna och paddlarna
     if ball.x - ball.instance_variable_get(:@radius) < 0
       scoreboard2.increase_score
       consecutive_scores_player1 = 0
@@ -233,6 +243,7 @@ update do
   end
 end
 
+#Renderingsloop för att rita objektet på skärmen
 render do
   clear
 
@@ -248,4 +259,4 @@ render do
   end
 end
 
-show
+show #Visar spelfönstret
